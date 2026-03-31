@@ -30,7 +30,7 @@ body{font-family:'DM Sans',sans-serif;background:#F2F6F9;color:#1B2838;min-heigh
 @keyframes spin{to{transform:rotate(360deg)}}
 .cnt{background:#EFF6FB;border:1px solid #D4DEE6;border-radius:8px;padding:10px;font-size:11px;color:#5C6E80;margin-bottom:12px;line-height:1.5}
 .cnt b{color:#005A80}
-#pdf-content{position:absolute;left:-9999px;top:0;width:794px;background:#fff;font-family:'DM Sans',Arial,sans-serif;color:#000;font-size:9.5px;line-height:1.5;padding:40px 48px}
+#pdf-content{position:fixed;left:0;top:0;width:794px;background:#fff;font-family:'DM Sans',Arial,sans-serif;color:#000;font-size:9.5px;line-height:1.5;padding:40px 48px;z-index:9998;overflow:auto;height:100vh;display:none}
 </style>
 </head>
 <body>
@@ -100,9 +100,8 @@ function gen(){
 
   setTimeout(function(){
     try{ buildPDF(); }
-    catch(e){ alert('Error: '+e.message); console.error(e); }
-    finally{ document.getElementById('ld').style.display='none'; btn.disabled=false; }
-  }, 200);
+    catch(e){ alert('Error: '+e.message); console.error(e); document.getElementById('ld').style.display='none'; btn.disabled=false; }
+  }, 300);
 }
 
 function buildPDF(){
@@ -295,26 +294,32 @@ function buildPDF(){
   h+='Date: '+dd(dc)+' | Aseer Health Cluster — Medication Safety Program | Confidential Quality Document</div>';
   h+='</div>';
 
-  document.getElementById('pdf-content').innerHTML=h;
+  var pdfEl=document.getElementById('pdf-content');
+  pdfEl.innerHTML=h;
+  pdfEl.style.display='block';
 
-  // Generate PDF
-  var opt={
-    margin:[4,5,7,5],
-    filename:'RCA_'+mrn+'_'+fd(V('iDate')).replace(/[, ]+/g,'_')+'.pdf',
-    image:{type:'jpeg',quality:0.97},
-    html2canvas:{scale:2,useCORS:true,letterRendering:true,logging:false},
-    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
-    pagebreak:{mode:['avoid-all','css','legacy']}
-  };
+  // Wait for fonts/images to load, then generate PDF
+  setTimeout(function(){
+    var opt={
+      margin:[4,5,7,5],
+      filename:'RCA_'+mrn+'_'+fd(V('iDate')).replace(/[, ]+/g,'_')+'.pdf',
+      image:{type:'jpeg',quality:0.97},
+      html2canvas:{scale:2,useCORS:true,letterRendering:true,logging:false,scrollY:0,windowWidth:794},
+      jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+      pagebreak:{mode:['avoid-all','css','legacy']}
+    };
 
-  html2pdf().set(opt).from(document.getElementById('pdf-content')).save().then(function(){
-    document.getElementById('ld').style.display='none';
-    document.getElementById('gBtn').disabled=false;
-  }).catch(function(e){
-    alert('PDF Error: '+e.message);
-    document.getElementById('ld').style.display='none';
-    document.getElementById('gBtn').disabled=false;
-  });
+    html2pdf().set(opt).from(pdfEl).save().then(function(){
+      pdfEl.style.display='none';
+      document.getElementById('ld').style.display='none';
+      document.getElementById('gBtn').disabled=false;
+    }).catch(function(e){
+      pdfEl.style.display='none';
+      alert('PDF Error: '+e.message);
+      document.getElementById('ld').style.display='none';
+      document.getElementById('gBtn').disabled=false;
+    });
+  }, 500);
 }
 
 // Default dates
